@@ -1,0 +1,21 @@
+//install python
+//in administrative powershell install chocolatey
+Get-ExecutionPolicy //if this returns "Restricted", run the next line
+Set-ExecutionPolicy AllSigned
+//then
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+//restart administrative powershell
+//install ffmpeg
+choco install ffmpeg
+//in a normal powershell, install pip (if not already installed)
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+python get-pip.py
+//install whisper
+pip install git+https://github.com/openai/whisper.git 
+//confirm whisper works, start python interpreter
+python
+>>>import whisper
+>>>model = whisper.load_model("tiny")
+>>>result = model.transcribe("audio.mp3")
+>>>print(result["text"])
+>>>exit()
