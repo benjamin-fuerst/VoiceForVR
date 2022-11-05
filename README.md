@@ -5,4 +5,4 @@ $python client.py
 or, depending on installation.  
 $python3 server.py  
 $python3 client.py  
-From there, client takes line of text, sends it, server turns it to uppercase, sends it back, client displays it.  
+From there, client takes filepath as input, sends it, server reads the file, transcribes it, sends it back, client displays it.  
