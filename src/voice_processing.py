@@ -20,7 +20,7 @@ intents.append("BUILTIN.NoIntent")
 # consider shortest form of word for stemming
 utterances = []
 # ENGLISH SHORTCUTS
-utterances.append(("Copy", "copy"))
+utterances.append(("Copy", "copi"))
 utterances.append(("Paste", "paste"))
 utterances.append(("Cut", "cut"))
 utterances.append(("Undo", "undo"))
