@@ -1,13 +1,21 @@
+# show help
+# show/hide processes
+# start/stop processes
+# keyboard
+import re
+import string
+
 # define intents
 intents = []
 intents.append("Copy")
 intents.append("Paste")
 intents.append("Cut")
 intents.append("Undo")
-intents.append("SelectLine")
-intents.append("DeleteLine")
 intents.append("ShowKeyboard")
 intents.append("HideKeyboard")
+intents.append("StartProcess")
+intents.append("StopProcess")
+intents.append("BUILTIN.HelpIntent")
 intents.append("BUILTIN.CancelIntent")
 intents.append("BUILTIN.StopIntent")
 intents.append("BUILTIN.StartOverIntent")
@@ -20,26 +28,27 @@ intents.append("BUILTIN.NoIntent")
 # consider shortest form of word for stemming
 utterances = []
 # ENGLISH SHORTCUTS
-utterances.append(("Copy", "copi"))
-utterances.append(("Paste", "paste"))
-utterances.append(("Cut", "cut"))
-utterances.append(("Undo", "undo"))
-utterances.append(("SelectLine", "select line"))
-utterances.append(("SelectLine", "line select")) # bad code protection
-utterances.append(("DeleteLine", "delete line"))
-utterances.append(("DeleteLine", "line delete")) # bad code protection
+utterances.append(("Copy", re.compile(r"copi")))
+utterances.append(("Paste", re.compile(r"paste")))
+utterances.append(("Cut", re.compile(r"cut")))
+utterances.append(("Undo", re.compile(r"undo")))
 #...
 # ENGLISH HELPERS
-utterances.append(("ShowKeyboard", "show keyboard"))
-utterances.append(("HideKeyboard", "hide keyboard"))
+utterances.append(("ShowKeyboard", re.compile(r"show keyboard")))
+utterances.append(("HideKeyboard", re.compile(r"hide keyboard")))
+utterances.append(("StartApplication", re.compile(r"start \d+")))
+utterances.append(("StopApplication", re.compile(r"stop \d+")))
 #...
 # ENGLISH BUILT-INS
-utterances.append(("BUILTIN.CancelIntent", "cancel")) # cancel current task, but remain in current session
-utterances.append(("BUILTIN.StopIntent", "stop")) # cancel current task and stop current session
-utterances.append(("BUILTIN.StartOverIntent", "restart")) # restart current session
-utterances.append(("BUILTIN.FallbackIntent", "FALLBACK")) # called if user input is not understood
-utterances.append(("BUILTIN.YesIntent", "yes")) # request help
-utterances.append(("BUILTIN.NoIntent", "no")) # request help
+utterances.append(("BUILTIN.HelpIntent", re.compile(r"help")))
+utterances.append(("BUILTIN.HelpIntent", re.compile(r"show help")))
+utterances.append(("BUILTIN.HelpIntent", re.compile(r"display help")))
+utterances.append(("BUILTIN.CancelIntent", re.compile(r"cancel"))) # cancel current task, but remain in current session
+utterances.append(("BUILTIN.StopIntent", re.compile(r"stop"))) # cancel current task and stop current session
+utterances.append(("BUILTIN.StartOverIntent", re.compile(r"restart"))) # restart current session
+utterances.append(("BUILTIN.FallbackIntent", re.compile(r"FALLBACK"))) # called if user input is not understood
+utterances.append(("BUILTIN.YesIntent", re.compile(r"yes"))) # request help
+utterances.append(("BUILTIN.NoIntent", re.compile(r"no"))) # request help
 
 # GERMAN SHORTCUTS
 #utterances.append("Copy", "kopieren")
@@ -62,9 +71,6 @@ nltk.download('punkt')
 from nltk.tokenize import RegexpTokenizer
 from nltk.corpus import stopwords
 nltk.download('stopwords')
-
-import re
-import string
 
 
 # removes contractions
@@ -225,9 +231,17 @@ def get_intent(utterance=""):
         return "BUILTIN.FallbackIntent"
     
     words = preprocess_utterance(utterance)
+    words_joined = " ".join(words)
     
     for keyword in range(len(utterances)):
-            if " ".join(words) == utterances[keyword][1]: # replace with similarity metric
-                return utterances[keyword][0]
+        if utterances[keyword][1].match(words_joined):
+            intent = utterances[keyword][0]
+            if intent == "StartApplication" or intent == "StopApplication":
+                argument = re.search(r"\d+$", words_joined).group()
+                return utterances[keyword][0], argument
+            else:
+                return utterances[keyword][0], None
     # if nothing is recognized
     return "BUILTIN.FallbackIntent"
+
+print(get_intent("start 12"))
