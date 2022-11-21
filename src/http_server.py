@@ -50,13 +50,13 @@ def transcribe():
         #result = model.transcribe(path)
         
         # print the recognized text
-        if argument is None:
+        if argument is "None":
             print(f"User said: {utterance}. Intent received: {intent}")
 
             return {
                 "text": utterance,
                 "intent": intent,
-                "argument": "null"
+                "argument": "None"
             }
         else:
             print(f"User said: {utterance}. Intent received: {intent}. Argument received: {argument}.")
