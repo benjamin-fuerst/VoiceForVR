@@ -7,8 +7,7 @@ PORT = 8000
 
 app = Flask(__name__)
 
-# base, small, medium, large, optionally with [*.en]
-model = whisper.load_model("tiny")
+model = whisper.load_model("tiny") #base, small, medium, large, optionally with [*.en]
 """
 Model comparison
 Size	Parameters	English-only model	Multilingual model	Required VRAM	Relative speed
@@ -24,7 +23,7 @@ large	1550 M	    N/A	large	                            ~10 GB	        1x
 def transcribe():
     path = request.get_json(True)['path']
     print(path)
-
+    
     # load audio and pad/trim it to fit 30 seconds
     audio = whisper.load_audio(path)
     audio = whisper.pad_or_trim(audio)
@@ -38,7 +37,7 @@ def transcribe():
     print(f"Detected language: {lang}")
     if lang != "en" and lang != "de":
         print("Please use either German or English")
-
+        
         return {
             "text": "Please use either German or English"
         }
@@ -47,16 +46,27 @@ def transcribe():
         options = whisper.DecodingOptions(fp16=False)
         result = whisper.decode(model, mel, options)
         utterance = result.text
-        intent = get_intent(utterance)
+        intent, argument = get_intent(utterance)
         #result = model.transcribe(path)
-
+        
         # print the recognized text
-        print(f"User said: {utterance}. Intent received: {intent}")
+        if argument is None:
+            print(f"User said: {utterance}. Intent received: {intent}")
 
-        return {
-            "text": utterance,
-            "intent": intent
-        }
+            return {
+                "text": utterance,
+                "intent": intent,
+                "argument": "null"
+            }
+        else:
+            print(f"User said: {utterance}. Intent received: {intent}. Argument received: {argument}.")
+
+            return {
+                "text": utterance,
+                "intent": intent,
+                "argument": argument
+            }
+
 
 
 if __name__ == '__main__':
