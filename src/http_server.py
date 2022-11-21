@@ -50,7 +50,7 @@ def transcribe():
         #result = model.transcribe(path)
         
         # print the recognized text
-        print(f"User said: {utterance}. Intent received: {intent})
+        print(f"User said: {utterance}. Intent received: {intent}")
         
         return {
             "text": utterance
