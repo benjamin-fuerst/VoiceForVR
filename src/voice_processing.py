@@ -244,6 +244,8 @@ def get_intent(utterance=""):
     # if nothing is recognized
     return "BUILTIN.FallbackIntent"
 
+'''
 intent, argument = get_intent("help")
 print(intent)
 print(argument)
+'''
