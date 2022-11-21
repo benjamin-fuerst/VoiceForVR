@@ -240,8 +240,10 @@ def get_intent(utterance=""):
                 argument = re.search(r"\d+$", words_joined).group()
                 return utterances[keyword][0], argument
             else:
-                return utterances[keyword][0], None
+                return utterances[keyword][0], "None"
     # if nothing is recognized
     return "BUILTIN.FallbackIntent"
 
-print(get_intent("start 12"))
+intent, argument = get_intent("help")
+print(intent)
+print(argument)
