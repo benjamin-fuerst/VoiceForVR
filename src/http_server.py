@@ -1,6 +1,7 @@
 import whisper
 from voice_processing import *
 from flask import Flask, request
+from pathlib import Path
 
 HOST = "127.0.0.1"
 PORT = 8000
@@ -19,7 +20,7 @@ medium	769 M	    medium.en	        medium	            ~5 GB	        ~2x
 large	1550 M	    N/A	large	                            ~10 GB	        1x
 """
 
-intents = []
+intents = ["show", "hide", "help"]
 
 
 @app.route('/initIntents', methods=["POST"])
@@ -33,11 +34,15 @@ def setIntents():
 
 @app.route('/transcribe', methods=['POST'])
 def transcribe():
+    print(request.get_json(True))
     path = request.get_json(True)['path']
     print(path)
 
+    p = Path(path)
     # load audio and pad/trim it to fit 30 seconds
-    audio = whisper.load_audio(path)
+    print(p, p.exists())
+    print(str(p))
+    audio = whisper.load_audio(p)
     audio = whisper.pad_or_trim(audio)
 
     # make log-Mel spectrogram and move to the same device as the model
@@ -57,7 +62,7 @@ def transcribe():
     # decode the audio
     options = whisper.DecodingOptions(fp16=False)
     result = whisper.decode(model, mel, options)
-    utterance = result.text
+    utterance = result.text.lower()
 
     for intent in intents:
         match = re.search(intent, utterance)
@@ -71,8 +76,8 @@ def transcribe():
 
     print("no match")
     return {
-        "intent": None,
-        "arguments": None,
+        "intent": "null",
+        "arguments": "null",
         "text": utterance
     }
 
