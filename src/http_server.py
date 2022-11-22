@@ -65,13 +65,15 @@ def transcribe():
             print(f"Matched intent {str(intent)} to transcription {utterance}")
             return {
                 "intent": str(intent),
-                "arguments": []
+                "arguments": [],
+                "text": utterance
             }
 
     print("no match")
     return {
         "intent": None,
         "arguments": None,
+        "text": utterance
     }
 
 
