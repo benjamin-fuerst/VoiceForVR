@@ -7,7 +7,8 @@ PORT = 8000
 
 app = Flask(__name__)
 
-model = whisper.load_model("tiny") #base, small, medium, large, optionally with [*.en]
+# base, small, medium, large, optionally with [*.en]
+model = whisper.load_model("tiny")
 """
 Model comparison
 Size	Parameters	English-only model	Multilingual model	Required VRAM	Relative speed
@@ -18,12 +19,23 @@ medium	769 M	    medium.en	        medium	            ~5 GB	        ~2x
 large	1550 M	    N/A	large	                            ~10 GB	        1x
 """
 
+intents = []
+
+
+@app.route('/initIntents', methods=["POST"])
+def setIntents():
+    global intents
+    intents = request.get_json(True)['intents']
+    return {
+        "intents": intents
+    }
+
 
 @app.route('/transcribe', methods=['POST'])
 def transcribe():
     path = request.get_json(True)['path']
     print(path)
-    
+
     # load audio and pad/trim it to fit 30 seconds
     audio = whisper.load_audio(path)
     audio = whisper.pad_or_trim(audio)
@@ -37,36 +49,30 @@ def transcribe():
     print(f"Detected language: {lang}")
     if lang != "en" and lang != "de":
         print("Please use either German or English")
-        
+
         return {
             "text": "Please use either German or English"
         }
-    else:
-        # decode the audio
-        options = whisper.DecodingOptions(fp16=False)
-        result = whisper.decode(model, mel, options)
-        utterance = result.text
-        intent, argument = get_intent(utterance)
-        #result = model.transcribe(path)
-        
-        # print the recognized text
-        if argument is "None":
-            print(f"User said: {utterance}. Intent received: {intent}")
 
-            return {
-                "text": utterance,
-                "intent": intent,
-                "argument": "None"
-            }
-        else:
-            print(f"User said: {utterance}. Intent received: {intent}. Argument received: {argument}.")
+    # decode the audio
+    options = whisper.DecodingOptions(fp16=False)
+    result = whisper.decode(model, mel, options)
+    utterance = result.text
 
+    for intent in intents:
+        match = re.search(intent, utterance)
+        if (match):
+            print(f"Matched intent {str(intent)} to transcription {utterance}")
             return {
-                "text": utterance,
-                "intent": intent,
-                "argument": argument
+                "intent": str(intent),
+                "arguments": []
             }
 
+    print("no match")
+    return {
+        "intent": None,
+        "arguments": None,
+    }
 
 
 if __name__ == '__main__':
