@@ -1,8 +1,10 @@
 import whisper
 from threading import Lock
-from voice_processing import *
+#from voice_processing import *
 from flask import Flask, request
 from pathlib import Path
+import string
+import re
 
 HOST = "127.0.0.1"
 PORT = 8000
@@ -22,7 +24,8 @@ medium	769 M	    medium.en	        medium	            ~5 GB	        ~2x
 large	1550 M	    N/A	large	                            ~10 GB	        1x
 """
 
-intents = ["show", "hide", "help"]
+#intents = ["show", "hide", "help"]
+intents = ["world help", "world show keyboard", "app open (?P<param>\d+)"]
 
 
 @app.route('/initIntents', methods=["POST"])
@@ -38,7 +41,7 @@ def setIntents():
 @app.route('/transcribe', methods=['POST'])
 def transcribe():
     if mutex.locked():
-        print("Was locked waiting")
+        print("Currently locked, waiting")
     mutex.acquire()
     print(request.get_json(True))
     path = request.get_json(True)['path']
@@ -69,26 +72,36 @@ def transcribe():
     options = whisper.DecodingOptions(fp16=False)
     result = whisper.decode(model, mel, options)
     utterance = result.text.lower()
+    utterance = utterance.translate(str.maketrans('', '', string.punctuation))
 
-    for intent in intents:
-        match = re.search(intent, utterance)
-        if (match):
-            print(f"Matched intent {str(intent)} to transcription {utterance}")
-            return {
-                "intent": str(intent),
-                "arguments": [],
-                "text": utterance
-            }
+    jsn = None
+    for i in range(len(intents)):
+        intents[i] = re.compile(intents[i])
+        print(intents)
 
-    print("no match")
+    for i in range(len(intents)):
+        match = intents[i].match(utterance)
+        if match is not None:
+            search = intents[i].search(utterance)
+            if search.groups() == ():
+                jsn = {"intent": utterance,
+                       "text": utterance}
+            else:
+                params = search.groupdict()
+                intent = utterance.split(" " + params[list(params.keys())[0]])[0]
+                jsn = {"intent": intent,
+                       "text": utterance}
+                jsn = jsn | params
+    
     mutex.release()
     print("Lock free again")
-    return {
-        "intent": "null",
-        "arguments": "null",
-        "text": utterance
-    }
-    
+    if jsn is not None:
+        return jsn
+    else:
+        print("no match")
+        return {"intent": "null",
+                "text": "null"}
+
 
 
 if __name__ == '__main__':
