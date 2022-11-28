@@ -1,4 +1,5 @@
 import whisper
+from threading import Lock
 from voice_processing import *
 from flask import Flask, request
 from pathlib import Path
@@ -7,6 +8,7 @@ HOST = "127.0.0.1"
 PORT = 8000
 
 app = Flask(__name__)
+mutex = Lock()
 
 # base, small, medium, large, optionally with [*.en]
 model = whisper.load_model("tiny")
@@ -27,6 +29,7 @@ intents = ["show", "hide", "help"]
 def setIntents():
     global intents
     intents = request.get_json(True)['intents']
+    print(intents)
     return {
         "intents": intents
     }
@@ -34,6 +37,9 @@ def setIntents():
 
 @app.route('/transcribe', methods=['POST'])
 def transcribe():
+    if mutex.locked():
+        print("Was locked waiting")
+    mutex.acquire()
     print(request.get_json(True))
     path = request.get_json(True)['path']
     print(path)
@@ -75,12 +81,15 @@ def transcribe():
             }
 
     print("no match")
+    mutex.release()
+    print("Lock free again")
     return {
         "intent": "null",
         "arguments": "null",
         "text": utterance
     }
+    
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, threaded=True)
