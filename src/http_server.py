@@ -5,6 +5,7 @@ from flask import Flask, request
 from pathlib import Path
 import string
 import re
+import digit_replacer
 
 HOST = "127.0.0.1"
 PORT = 8000
@@ -74,6 +75,14 @@ def transcribe():
     utterance = result.text.lower()
     utterance = utterance.translate(str.maketrans('', '', string.punctuation))
 
+    # 1. cleaning: replace words with keyword numbers if similar
+    # e.g. "for" -> "four"
+    utterance = digit_replacer.replaceSimilarWithNumbers(utterance)
+
+    # 2. map string numbers to numbers
+    # e.g. "one point 3" -> "1.3"
+    utterance = digit_replacer.replaceNumberAsWordsWithDigits(utterance)
+
     jsn = None
     for intentString in intents:
         intent = re.compile(intentString)
@@ -83,23 +92,22 @@ def transcribe():
 
         params = search.groupdict()
         jsn = {"intent": intentString,
-                "text": utterance,
-                "params": params}
+               "text": utterance,
+               "params": params}
         break
-    
+
     mutex.release()
     if jsn is None:
         print("no match")
         print({"intent": "null",
-                "text": utterance,
-                "params": {}})
+               "text": utterance,
+               "params": {}})
         return {"intent": "null",
                 "text": utterance,
                 "params": {}}
-    
+
     print(jsn)
     return jsn
-
 
 
 if __name__ == '__main__':
