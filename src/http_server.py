@@ -1,8 +1,10 @@
 import whisper
 from threading import Lock
-from voice_processing import *
+#from voice_processing import *
 from flask import Flask, request
 from pathlib import Path
+import string
+import re
 
 HOST = "127.0.0.1"
 PORT = 8000
@@ -22,14 +24,15 @@ medium	769 M	    medium.en	        medium	            ~5 GB	        ~2x
 large	1550 M	    N/A	large	                            ~10 GB	        1x
 """
 
-intents = ["show", "hide", "help"]
+#intents = ["show", "hide", "help"]
+intents = ["world help", "world show keyboard", "app open (?P<param>\d+)"]
 
 
 @app.route('/initIntents', methods=["POST"])
 def setIntents():
     global intents
     intents = request.get_json(True)['intents']
-    print(intents)
+    # print(intents)
     return {
         "intents": intents
     }
@@ -37,8 +40,6 @@ def setIntents():
 
 @app.route('/transcribe', methods=['POST'])
 def transcribe():
-    if mutex.locked():
-        print("Was locked waiting")
     mutex.acquire()
     print(request.get_json(True))
     path = request.get_json(True)['path']
@@ -62,33 +63,43 @@ def transcribe():
         print("Please use either German or English")
 
         return {
-            "text": "Please use either German or English"
+            "intent": "null",
+            "text": "Please use either German or English",
+            "params": {}
         }
 
     # decode the audio
     options = whisper.DecodingOptions(fp16=False)
     result = whisper.decode(model, mel, options)
     utterance = result.text.lower()
+    utterance = utterance.translate(str.maketrans('', '', string.punctuation))
 
-    for intent in intents:
-        match = re.search(intent, utterance)
-        if (match):
-            print(f"Matched intent {str(intent)} to transcription {utterance}")
-            return {
-                "intent": str(intent),
-                "arguments": [],
-                "text": utterance
-            }
+    jsn = None
+    for intentString in intents:
+        intent = re.compile(intentString)
+        search = intent.search(utterance)
+        if search == None:
+            continue
 
-    print("no match")
-    mutex.release()
-    print("Lock free again")
-    return {
-        "intent": "null",
-        "arguments": "null",
-        "text": utterance
-    }
+        params = search.groupdict()
+        jsn = {"intent": intentString,
+                "text": utterance,
+                "params": params}
+        break
     
+    mutex.release()
+    if jsn is None:
+        print("no match")
+        print({"intent": "null",
+                "text": utterance,
+                "params": {}})
+        return {"intent": "null",
+                "text": utterance,
+                "params": {}}
+    
+    print(jsn)
+    return jsn
+
 
 
 if __name__ == '__main__':
