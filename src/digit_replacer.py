@@ -21,7 +21,12 @@ regex = "(" + "\\s*|".join(w2n.american_number_system.keys()) + "\\s*|\\d+\\s*)+
 def replaceNumberAsWordsWithDigits(utterance):
     copy = utterance
     for match in re.finditer(regex, utterance):
-        print(match.group())
-        copy = copy.replace(match.group(), str(
-            w2n.word_to_num(match.group())) + " ")
+        number = match.group()
+        try:
+            number = str(w2n.word_to_num(match.group()))
+        except ValueError:
+            print("no matching number word found")
+            print(match.group())
+
+        copy = copy.replace(match.group(), number + " ")
     return copy
