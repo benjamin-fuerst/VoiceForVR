@@ -6,6 +6,7 @@ from pathlib import Path
 import string
 import re
 import digit_replacer
+from fuzzywuzzy import fuzz
 
 HOST = "127.0.0.1"
 PORT = 8000
@@ -93,6 +94,19 @@ def transcribe():
     utterance = re.sub(r"minus ", "-", utterance)
 
     print(utterance)
+    # get intents with only ascii + numbers
+    # e.g. re.findall(r"(\d+|\w+)\s+", " cube translate 2 (?P<number>) ")
+
+    # map words to phonetics, then check levenshtein distance with fuzzywuzzy
+    """ get distances
+    from fuzzywuzzy import fuzz
+    metaphone = fuzzy.DMetaphone()
+
+    print(metaphone("tube"))
+    print(metaphone("cube"))
+    print(fuzz.ratio(metaphone("tube"), metaphone("cube")))
+    """
+
     jsn = None
     for intentString in intents:
         intent = re.compile(intentString)
