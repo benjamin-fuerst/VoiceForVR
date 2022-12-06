@@ -33,7 +33,8 @@ intents = ["world help", "world show keyboard", "app open (?P<param>\d+)"]
 def setIntents():
     global intents
     intents = request.get_json(True)['intents']
-    # print(intents)
+    intents = sorted(intents, key=len, reverse=True)
+    print(intents)
     return {
         "intents": intents
     }
@@ -75,6 +76,11 @@ def transcribe():
     utterance = result.text.lower()
     utterance = utterance.translate(str.maketrans('', '', string.punctuation))
 
+    # whisper understands "x 1" as "x1", which we don't want,
+    # so we split each number here:
+    utterance = re.split("(\d+)", utterance)
+    utterance = " ".join(utterance)
+
     # 1. cleaning: replace words with keyword numbers if similar
     # e.g. "for" -> "four"
     utterance = digit_replacer.replaceSimilarWithNumbers(utterance)
@@ -83,6 +89,10 @@ def transcribe():
     # e.g. "one point 3" -> "1.3"
     utterance = digit_replacer.replaceNumberAsWordsWithDigits(utterance)
 
+    # replace "minus number" with -num
+    utterance = re.sub(r"minus ", "-", utterance)
+
+    print(utterance)
     jsn = None
     for intentString in intents:
         intent = re.compile(intentString)
