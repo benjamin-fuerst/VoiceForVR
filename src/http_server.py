@@ -93,19 +93,30 @@ def transcribe():
     # replace "minus number" with -num
     utterance = re.sub(r"minus ", "-", utterance)
 
-    print(utterance)
-    # get intents with only ascii + numbers
-    # e.g. re.findall(r"(\d+|\w+)\s+", " cube translate 2 (?P<number>) ")
+    def intentsNumbersReplaced(utterance, intents):
+        intentsReplaced = []
+        for intent in intents:
+            numbersInUtterance = re.findall(r"-?\d+\.?\d*", utterance)
+            replacedIntent: str = intent
+            for i in range(len(numbersInUtterance)):
+                replacedIntent = replacedIntent.replace(
+                    "\num", numbersInUtterance[i], 1)
+            intentsReplaced.append(
+                (intent, replacedIntent, numbersInUtterance))
+        return intentsReplaced
 
-    # map words to phonetics, then check levenshtein distance with fuzzywuzzy
-    """ get distances
-    from fuzzywuzzy import fuzz
-    metaphone = fuzzy.DMetaphone()
+    intentsReplaced = intentsNumbersReplaced(utterance, intents)
 
-    print(metaphone("tube"))
-    print(metaphone("cube"))
-    print(fuzz.ratio(metaphone("tube"), metaphone("cube")))
-    """
+    (matchedIntent, accuracy, params) = max(*[(intent, fuzz.ratio(utterance, replaced), numbersInUtterance) for (
+        intent, replaced, numbersInUtterance) in intentsReplaced], key=lambda tuple: tuple[1])
+
+    minThreshold = 80
+
+    mutex.release()
+    return {"intent": matchedIntent if accuracy > minThreshold else "null",
+            "text": utterance,
+            "params": params
+            }
 
     jsn = None
     for intentString in intents:
