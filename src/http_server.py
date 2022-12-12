@@ -91,7 +91,9 @@ def transcribe():
     utterance = digit_replacer.replaceNumberAsWordsWithDigits(utterance)
 
     # replace "minus number" with -num
-    utterance = re.sub(r"minus ", "-", utterance)
+    print(utterance)
+    utterance = re.sub(r"minus +", "-", utterance)
+    print(utterance)
 
     def intentsNumbersReplaced(utterance, intents):
         intentsReplaced = []
@@ -110,13 +112,16 @@ def transcribe():
     (matchedIntent, accuracy, params) = max(*[(intent, fuzz.ratio(utterance, replaced), numbersInUtterance) for (
         intent, replaced, numbersInUtterance) in intentsReplaced], key=lambda tuple: tuple[1])
 
-    minThreshold = 80
+    minThreshold = 50
 
     mutex.release()
-    return {"intent": matchedIntent if accuracy > minThreshold else "null",
+    print(accuracy)
+    json = {"intent": matchedIntent if accuracy > minThreshold else "null",
             "text": utterance,
             "params": params
             }
+    print(json)
+    return json
 
     jsn = None
     for intentString in intents:
