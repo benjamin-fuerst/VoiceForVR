@@ -30,3 +30,21 @@ def replaceNumberAsWordsWithDigits(utterance):
 
         copy = copy.replace(match.group(), number + " ")
     return copy
+
+def vocalized(sentence: str):
+    metaphone = fuzzy.DMetaphone()
+    words = sentence.split(" ")
+    vocalizations = [(w, metaphone(w)[0].decode("utf-8") if metaphone(w)[0] else w) for w in words]
+    return " ".join([vocal for (w, vocal) in vocalizations])
+
+def intentsNumbersReplaced(utterance, intents):
+    intentsReplaced = []
+    for intent in intents:
+        numbersInUtterance = re.findall(r"-?\d+\.?\d*", utterance)
+        replacedIntent: str = intent
+        for i in range(len(numbersInUtterance)):
+            replacedIntent = replacedIntent.replace(
+                r"\num", numbersInUtterance[i], 1)
+        intentsReplaced.append(
+            (intent, replacedIntent, numbersInUtterance))
+    return intentsReplaced
