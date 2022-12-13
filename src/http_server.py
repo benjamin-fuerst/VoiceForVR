@@ -7,6 +7,7 @@ import string
 import re
 import digit_replacer
 from fuzzywuzzy import fuzz
+import webbrowser
 
 HOST = "127.0.0.1"
 PORT = 8000
@@ -34,6 +35,7 @@ intents = ["world help", "world show keyboard", "app open (?P<param>\d+)"]
 def setIntents():
     global intents
     intents = request.get_json(True)['intents']
+    intents.append("merry christmas")
     intents = sorted(intents, key=len, reverse=True)
     print(intents)
     return {
@@ -46,12 +48,8 @@ def transcribe():
     mutex.acquire()
     print(request.get_json(True))
     path = request.get_json(True)['path']
-    print(path)
 
     p = Path(path)
-    # load audio and pad/trim it to fit 30 seconds
-    print(p, p.exists())
-    print(str(p))
     audio = whisper.load_audio(p)
     audio = whisper.pad_or_trim(audio)
 
@@ -66,9 +64,8 @@ def transcribe():
         print("Please use either German or English")
 
         return {
-            "intent": "null",
             "text": "Please use either German or English",
-            "params": {}
+            "matches": []
         }
 
     # decode the audio
@@ -91,64 +88,34 @@ def transcribe():
     utterance = digit_replacer.replaceNumberAsWordsWithDigits(utterance)
 
     # replace "minus number" with -num
-    print(utterance)
     utterance = re.sub(r"minus +", "-", utterance)
-    print(utterance)
 
-    def intentsNumbersReplaced(utterance, intents):
-        intentsReplaced = []
-        for intent in intents:
-            numbersInUtterance = re.findall(r"-?\d+\.?\d*", utterance)
-            replacedIntent: str = intent
-            for i in range(len(numbersInUtterance)):
-                replacedIntent = replacedIntent.replace(
-                    "\num", numbersInUtterance[i], 1)
-            intentsReplaced.append(
-                (intent, replacedIntent, numbersInUtterance))
-        return intentsReplaced
+    intentsReplaced = digit_replacer.intentsNumbersReplaced(utterance, intents)
+    print("replaced: ")
+    print([r for (_, r, __) in intentsReplaced])
 
-    intentsReplaced = intentsNumbersReplaced(utterance, intents)
-
-    (matchedIntent, accuracy, params) = max(*[(intent, fuzz.ratio(utterance, replaced), numbersInUtterance) for (
-        intent, replaced, numbersInUtterance) in intentsReplaced], key=lambda tuple: tuple[1])
-
+    matches = sorted([(intent, fuzz.ratio(utterance, replaced), numbersInUtterance) for (
+        intent, replaced, numbersInUtterance) in intentsReplaced], key=lambda tuple: tuple[1], reverse=True)
+    
     minThreshold = 50
+    matches = list(filter(lambda t: t[1] > minThreshold, matches))
+
+    if (len(matches) >= 1 and matches[0][0] == "merry christmas"):
+        webbrowser.open("https://www.youtube.com/watch?v=td4OryjWWMQ&list=PLIUr8pawQYegwEmt4xO87dPvjhrQUxU-W", 1)
 
     mutex.release()
-    print(accuracy)
-    json = {"intent": matchedIntent if accuracy > minThreshold else "null",
-            "text": utterance,
-            "params": params
-            }
+
+    matches = [{"intent": matchedIntent,
+            "params": params,
+            "accuracy": accuracy
+            } for (matchedIntent, accuracy, params) in matches]
+    
+    json = {
+        "text": utterance,
+        "matches": matches
+    }
     print(json)
     return json
-
-    jsn = None
-    for intentString in intents:
-        intent = re.compile(intentString)
-        search = intent.search(utterance)
-        if search == None:
-            continue
-
-        params = search.groupdict()
-        jsn = {"intent": intentString,
-               "text": utterance,
-               "params": params}
-        break
-
-    mutex.release()
-    if jsn is None:
-        print("no match")
-        print({"intent": "null",
-               "text": utterance,
-               "params": {}})
-        return {"intent": "null",
-                "text": utterance,
-                "params": {}}
-
-    print(jsn)
-    return jsn
-
 
 if __name__ == '__main__':
     app.run(debug=True, threaded=True)
