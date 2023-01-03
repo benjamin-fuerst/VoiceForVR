@@ -9,9 +9,6 @@ import digit_replacer
 from fuzzywuzzy import fuzz
 import webbrowser
 
-HOST = "127.0.0.1"
-PORT = 8000
-
 app = Flask(__name__)
 mutex = Lock()
 
@@ -96,20 +93,21 @@ def transcribe():
 
     matches = sorted([(intent, fuzz.ratio(utterance, replaced), numbersInUtterance) for (
         intent, replaced, numbersInUtterance) in intentsReplaced], key=lambda tuple: tuple[1], reverse=True)
-    
+
     minThreshold = 50
     matches = list(filter(lambda t: t[1] > minThreshold, matches))
 
     if (len(matches) >= 1 and matches[0][0] == "merry christmas"):
-        webbrowser.open("https://www.youtube.com/watch?v=td4OryjWWMQ&list=PLIUr8pawQYegwEmt4xO87dPvjhrQUxU-W", 1)
+        webbrowser.open(
+            "https://www.youtube.com/watch?v=td4OryjWWMQ&list=PLIUr8pawQYegwEmt4xO87dPvjhrQUxU-W", 1)
 
     mutex.release()
 
     matches = [{"intent": matchedIntent,
-            "params": params,
-            "accuracy": accuracy
-            } for (matchedIntent, accuracy, params) in matches]
-    
+                "params": params,
+                "accuracy": accuracy
+                } for (matchedIntent, accuracy, params) in matches]
+
     json = {
         "text": utterance,
         "matches": matches
@@ -117,5 +115,6 @@ def transcribe():
     print(json)
     return json
 
-if __name__ == '__main__':
-    app.run(debug=True, threaded=True)
+
+if __name__ == "__main__":
+    app.run(debug=True, port=5000)

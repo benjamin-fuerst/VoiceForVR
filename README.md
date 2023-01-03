@@ -1,6 +1,14 @@
 # VoiceForVR  
 To start the server, run
-`python3 -m flask --app ./src/http_server.py run --port 8000`
+`python3 -m flask --app ./src/http_server.py run`
+
+or
+
+```python
+python3 ./src/http_server.py
+```
+
+for a debug server.
 
 The server listens for POST requests on `/transcribe` and expects a json file like
 
