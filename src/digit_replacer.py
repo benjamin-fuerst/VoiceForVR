@@ -63,3 +63,14 @@ def intentsNumbersReplaced(utterance, intents):
         intentsReplaced.append(
             (intent, replacedIntent, numbersInUtterance))
     return intentsReplaced
+
+
+def intentsRestReplaced(utterance, intentsReplaced):
+    l = []
+    for entry in intentsReplaced:
+        if "\rest" in entry[0]:
+            before, rest = entry[1].split("\rest")
+            l.append((entry[0], before + utterance[len(before):], entry[2] + [utterance[len(before):]]))
+        else:
+            l.append(entry)
+    return l
