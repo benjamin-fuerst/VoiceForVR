@@ -5,6 +5,9 @@ from flask import Flask, request
 from pathlib import Path
 import string
 import re
+import digit_replacer
+from fuzzywuzzy import fuzz
+import webbrowser
 
 HOST = "127.0.0.1"
 PORT = 8000
@@ -32,6 +35,9 @@ intents = ["world help", "world show keyboard", "app open (?P<param>\d+)"]
 def setIntents():
     global intents
     intents = request.get_json(True)['intents']
+    #intents.append("merry christmas")
+    intents = sorted(intents, key=len, reverse=True)
+    print("initIntents called, here are the intents:")
     print(intents)
     return {
         "intents": intents
@@ -40,17 +46,12 @@ def setIntents():
 
 @app.route('/transcribe', methods=['POST'])
 def transcribe():
-    if mutex.locked():
-        print("Currently locked, waiting")
     mutex.acquire()
+    print("transcribe called")
     print(request.get_json(True))
     path = request.get_json(True)['path']
-    print(path)
 
     p = Path(path)
-    # load audio and pad/trim it to fit 30 seconds
-    print(p, p.exists())
-    print(str(p))
     audio = whisper.load_audio(p)
     audio = whisper.pad_or_trim(audio)
 
@@ -63,46 +64,62 @@ def transcribe():
     print(f"Detected language: {lang}")
     if lang != "en" and lang != "de":
         print("Please use either German or English")
-
         return {
-            "text": "Please use either German or English"
+            "text": "Please use either German or English",
+            "matches": []
         }
 
     # decode the audio
     options = whisper.DecodingOptions(fp16=False)
     result = whisper.decode(model, mel, options)
+    
+    # lowercase and remove puncation
     utterance = result.text.lower()
     utterance = utterance.translate(str.maketrans('', '', string.punctuation))
 
-    jsn = None
-    for i in range(len(intents)):
-        intents[i] = re.compile(intents[i])
-        print(intents)
+    # whisper understands "x 1" as "x1", which we don't want,
+    # so we split each number here:
+    utterance = re.split("(\d+)", utterance)
+    utterance = " ".join(utterance)
 
-    for i in range(len(intents)):
-        match = intents[i].match(utterance)
-        if match is not None:
-            search = intents[i].search(utterance)
-            if search.groups() == ():
-                jsn = {"intent": utterance,
-                       "text": utterance}
-            else:
-                params = search.groupdict()
-                intent = utterance.split(" " + params[list(params.keys())[0]])[0]
-                jsn = {"intent": intent,
-                       "text": utterance}
-                jsn = jsn | params
+    # 1. cleaning: replace words with keyword numbers if similar
+    # e.g. "for" -> "four"
+    utterance = digit_replacer.replaceSimilarWithNumbers(utterance)
+
+    # 2. map string numbers to numbers
+    # e.g. "one point 3" -> "1.3"
+    utterance = digit_replacer.replaceNumberAsWordsWithDigits(utterance)
+
+    # replace "minus number" with -num
+    utterance = re.sub(r"minus +", "-", utterance)
+
+    intentsReplaced = digit_replacer.intentsNumbersReplaced(utterance, intents)
+    print("replaced: ")
+    print([r for (_, r, __) in intentsReplaced])
+
+    matches = [(intent, digit_replacer.ratio_metaphone(utterance, replaced), numbersInUtterance) for (
+        intent, replaced, numbersInUtterance) in intentsReplaced]
+    matches = sorted(matches, key=lambda tuple: tuple[1], reverse=True)
     
+    minThreshold = 50
+    matches = list(filter(lambda t: t[1] > minThreshold, matches))
+
+    #if (len(matches) >= 1 and matches[0][0] == "merry christmas"):
+    #    webbrowser.open("https://www.youtube.com/watch?v=td4OryjWWMQ&list=PLIUr8pawQYegwEmt4xO87dPvjhrQUxU-W", 1)
+
     mutex.release()
-    print("Lock free again")
-    if jsn is not None:
-        return jsn
-    else:
-        print("no match")
-        return {"intent": "null",
-                "text": "null"}
 
-
+    matches = [{"intent": matchedIntent,
+            "params": params,
+            "accuracy": accuracy
+            } for (matchedIntent, accuracy, params) in matches]
+    
+    json = {
+        "text": utterance,
+        "matches": matches
+    }
+    print(json)
+    return json
 
 if __name__ == '__main__':
     app.run(debug=True, threaded=True)
