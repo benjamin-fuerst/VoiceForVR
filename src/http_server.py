@@ -32,7 +32,7 @@ intents = ["world help", "world show keyboard", "app open (?P<param>\d+)"]
 def setIntents():
     global intents
     intents = request.get_json(True)['intents']
-    intents.append("merry christmas")
+    #intents.append("merry christmas")
     intents = sorted(intents, key=len, reverse=True)
     print(intents)
     return {
@@ -68,6 +68,8 @@ def transcribe():
     # decode the audio
     options = whisper.DecodingOptions(fp16=False)
     result = whisper.decode(model, mel, options)
+
+    # lowercase and remove puncation
     utterance = result.text.lower()
     utterance = utterance.translate(str.maketrans('', '', string.punctuation))
 
@@ -91,15 +93,16 @@ def transcribe():
     print("replaced: ")
     print([r for (_, r, __) in intentsReplaced])
 
-    matches = sorted([(intent, fuzz.ratio(utterance, replaced), numbersInUtterance) for (
-        intent, replaced, numbersInUtterance) in intentsReplaced], key=lambda tuple: tuple[1], reverse=True)
+    matches = [(intent, digit_replacer.ratio_metaphone(utterance, replaced), numbersInUtterance) for (
+        intent, replaced, numbersInUtterance) in intentsReplaced]
+    matches = sorted(matches, key=lambda tuple: tuple[1], reverse=True)
 
     minThreshold = 50
     matches = list(filter(lambda t: t[1] > minThreshold, matches))
 
-    if (len(matches) >= 1 and matches[0][0] == "merry christmas"):
-        webbrowser.open(
-            "https://www.youtube.com/watch?v=td4OryjWWMQ&list=PLIUr8pawQYegwEmt4xO87dPvjhrQUxU-W", 1)
+    #if (len(matches) >= 1 and matches[0][0] == "merry christmas"):
+    #    webbrowser.open(
+    #        "https://www.youtube.com/watch?v=td4OryjWWMQ&list=PLIUr8pawQYegwEmt4xO87dPvjhrQUxU-W", 1)
 
     mutex.release()
 
