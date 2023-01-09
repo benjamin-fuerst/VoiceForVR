@@ -90,6 +90,8 @@ def transcribe():
     utterance = re.sub(r"minus +", "-", utterance)
 
     intentsReplaced = digit_replacer.intentsNumbersReplaced(utterance, intents)
+    intentsReplaced = digit_replacer.intentsRestReplaced(intentsReplaced)
+    
     print("replaced: ")
     print([r for (_, r, __) in intentsReplaced])
 
