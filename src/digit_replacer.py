@@ -53,20 +53,17 @@ def replaceNumberAsWordsWithDigits(utterance):
 def intentsNumbersReplaced(utterance, intents):
     intentsReplaced = []
     for intent in intents:
-        numbersInIntents = intent.count(r"\num")
-        if numbersInIntents == 0:
-            intentsReplaced.append(
-            (intent, intent, []))
+        numCount = intent.count(r"\num")
+        if numCount == 0:
+            intentsReplaced.append((intent, intent, []))
             continue
         numbersInUtterance = re.findall(r"-?\d+\.?\d*", utterance)
         replacedIntent: str = intent
-        for i in range(numbersInIntents):
-            replacedIntent = replacedIntent.replace(
-                r"\num", numbersInUtterance[i], 1)
+        for i in range(min(numCount, len(numbersInUtterance))):
+            replacedIntent = replacedIntent.replace(r"\num", numbersInUtterance[i], 1)
                 #( "note add \rest", "note add remind meto ...", )
                 # "note addd remind me to buy bla"
-        intentsReplaced.append(
-            (intent, replacedIntent, numbersInUtterance))
+        intentsReplaced.append((intent, replacedIntent, numbersInUtterance))
     return intentsReplaced
 
 
