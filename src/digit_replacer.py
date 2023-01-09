@@ -1,5 +1,5 @@
 import re
-import fuzz
+from fuzzywuzzy import fuzz
 import fuzzy
 from word2number import w2n
 
