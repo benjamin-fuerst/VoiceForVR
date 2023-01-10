@@ -59,8 +59,7 @@ def transcribe():
     print(f"Detected language: {lang}")
     if lang != "en" and lang != "de":
         print("Please use either German or English")
-
-        return {
+        json = {
             "text": "Please use either German or English",
             "matches": []
         }
