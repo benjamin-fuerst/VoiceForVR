@@ -13,7 +13,7 @@ app = Flask(__name__)
 mutex = Lock()
 
 # base, small, medium, large, optionally with [*.en]
-model = whisper.load_model("tiny")
+model = whisper.load_model("tiny.en")
 """
 Model comparison
 Size	Parameters	English-only model	Multilingual model	Required VRAM	Relative speed
@@ -32,13 +32,12 @@ intents = ["world help", "world show keyboard", "app open (?P<param>\d+)"]
 def setIntents():
     global intents
     intents = request.get_json(True)['intents']
-    #intents.append("merry christmas")
     intents = sorted(intents, key=len, reverse=True)
     print(intents)
     return {
         "intents": intents
     }
-
+ 
 
 @app.route('/transcribe', methods=['POST'])
 def transcribe():
@@ -50,26 +49,12 @@ def transcribe():
     audio = whisper.load_audio(p)
     audio = whisper.pad_or_trim(audio)
 
-    # make log-Mel spectrogram and move to the same device as the model
-    mel = whisper.log_mel_spectrogram(audio).to(model.device)
-
-    # detect the spoken language
-    _, probs = model.detect_language(mel)
-    lang = max(probs, key=probs.get)
-    print(f"Detected language: {lang}")
-    if lang != "en" and lang != "de":
-        print("Please use either German or English")
-        json = {
-            "text": "Please use either German or English",
-            "matches": []
-        }
-
     # decode the audio
-    options = whisper.DecodingOptions(fp16=False)
-    result = whisper.decode(model, mel, options)
+    #options = whisper.DecodingOptions(fp16=False)
+    result = model.transcribe(audio)
 
     # lowercase and remove puncation
-    utterance = result.text.lower()
+    utterance = result["text"].lower()
     utterance = utterance.translate(str.maketrans('', '', string.punctuation))
 
     # whisper understands "x 1" as "x1", which we don't want,
@@ -90,20 +75,13 @@ def transcribe():
 
     intentsReplaced = digit_replacer.intentsNumbersReplaced(utterance, intents)
     intentsReplaced = digit_replacer.intentsRestReplaced(utterance, intentsReplaced)
-    
-    print("replaced: ")
-    print([r for (_, r, __) in intentsReplaced])
 
-    matches = [(intent, digit_replacer.ratio_metaphone(utterance, replaced), numbersInUtterance) for (
+    matches = [(intent, digit_replacer.similarity(utterance.strip(), replaced.strip()), numbersInUtterance) for (
         intent, replaced, numbersInUtterance) in intentsReplaced]
     matches = sorted(matches, key=lambda tuple: tuple[1], reverse=True)
 
     minThreshold = 50
     matches = list(filter(lambda t: t[1] > minThreshold, matches))
-
-    #if (len(matches) >= 1 and matches[0][0] == "merry christmas"):
-    #    webbrowser.open(
-    #        "https://www.youtube.com/watch?v=td4OryjWWMQ&list=PLIUr8pawQYegwEmt4xO87dPvjhrQUxU-W", 1)
 
     mutex.release()
 
