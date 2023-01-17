@@ -19,6 +19,11 @@ def to_metaphone(expression: str) -> int:
 def ratio_metaphone(expression1, expression2: str) -> int:
     return fuzz.ratio(to_metaphone(expression1), to_metaphone(expression2))
 
+def ratio_worddistance(expression1, expression2: str) -> int:
+    return fuzz.ratio(expression1, expression2)
+
+def similarity(expression1, expression2: str) -> int:
+    return (ratio_metaphone(expression1, expression2) + ratio_worddistance(expression1, expression2)) / 2
 
 def replaceSimilarWithNumbers(utterance):
     # to, too -> two, for -> four
@@ -50,7 +55,7 @@ def replaceNumberAsWordsWithDigits(utterance):
         copy = copy.replace(match.group(), number + " ")
     return copy
 
-def intentsNumbersReplaced(utterance, intents):
+def intentsNumbersReplaced(utterance, intents) -> list[tuple[str, str, list]]:
     intentsReplaced = []
     for intent in intents:
         numCount = intent.count(r"\num")
@@ -67,7 +72,7 @@ def intentsNumbersReplaced(utterance, intents):
     return intentsReplaced
 
 
-def intentsRestReplaced(utterance, intentsReplaced):
+def intentsRestReplaced(utterance, intentsReplaced) -> list[tuple[str, str, list]]:
     l = []
     for entry in intentsReplaced:
         if r"\rest" in entry[0]:
