@@ -73,10 +73,13 @@ def transcribe():
     # replace "minus number" with -num
     utterance = re.sub(r"minus +", "-", utterance)
 
+    # clear whitespace
+    utterance = utterance.strip()
+
     intentsReplaced = digit_replacer.intentsNumbersReplaced(utterance, intents)
     intentsReplaced = digit_replacer.intentsRestReplaced(utterance, intentsReplaced)
 
-    matches = [(intent, digit_replacer.similarity(utterance.strip(), replaced.strip()), numbersInUtterance) for (
+    matches = [(intent, digit_replacer.similarity(utterance, replaced.strip()), numbersInUtterance) for (
         intent, replaced, numbersInUtterance) in intentsReplaced]
     matches = sorted(matches, key=lambda tuple: tuple[1], reverse=True)
 
