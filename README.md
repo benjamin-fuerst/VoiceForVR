@@ -1,6 +1,6 @@
 # VoiceForVR 
 
-![]((Screenshot%202023-02-06%20201903.png?raw=true)
+![Image of a farm build using voice intents](Screenshot%202023-02-06%20201903.png?raw=true)
 
 This project provides a simple intent matching server for python, based on whisper. You send a json pointing to your audio file, and the server responses with a list of matched intents and their accuracies.
 
